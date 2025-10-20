@@ -5,6 +5,50 @@ import asyncio   # 👈 This is required for asyncio.run()
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from telegram import Bot
 
+# --- Relevance detectors ---
+CRYPTO_TERMS = [
+    r"\bbitcoin\b", r"\bbtc\b", r"\bethereum\b", r"\beth\b",
+    r"\bcrypto\b", r"\bstablecoin\b", r"\betf\b", r"\bspot etf\b",
+    r"\bsec\b", r"\bcftc\b", r"\bcoinbase\b", r"\bbinance\b",
+    r"\bminer(s)?\b", r"\bhalving\b", r"\bhashrate\b"
+]
+
+FINANCE_TERMS = [
+    # Monetary policy & inflation
+    r"\bfed(?:eral reserve)?\b", r"\bfomc\b", r"\bpowell\b", r"\brate(?:s| hike| cut)\b",
+    r"\binflation\b", r"\bcpi\b", r"\bppi\b",
+    # Fiscal & taxes
+    r"\btax(?:es|ation)?\b", r"\btax (?:cut|hike|increase|reform)\b", r"\bstimulus\b", r"\bdeficit\b",
+    r"\bshutdown\b", r"\bbudget\b", r"\bdebt ceiling\b",
+    # Trade & regulation
+    r"\btariff(s)?\b", r"\bsanction(s)?\b", r"\bimport\b", r"\bexport\b", r"\bquota\b", r"\bban\b", r"\bwto\b",
+    # Energy / oil
+    r"\bopec\b", r"\bspr\b", r"\boil\b", r"\bbarrel\b", r"\bsaudi\b", r"\bproduction cut\b",
+    # Big tech / markets
+    r"\bsec\b", r"\bcftc\b", r"\bftc\b", r"\bdoj\b", r"\bantitrust\b",
+    r"\bapple\b|\bamazon\b|\bgoogle\b|\balphabet\b|\bmicrosoft\b|\bnvidia\b|\btesla\b",
+    # Geopolitics with market impact
+    r"\bchina\b", r"\brussia\b", r"\biran\b", r"\bisrael\b", r"\bukraine\b", r"\btaiwan\b",
+    r"\bwar\b", r"\bescalation\b", r"\bmissile\b", r"\bconflict\b", r"\bstrike\b"
+]
+
+def is_crypto_related(text: str, tags: list[str]) -> bool:
+    if any(tag.lower().startswith("crypto") for tag in tags):
+        return True
+    t = text.lower()
+    return any(re.search(p, t, flags=re.I) for p in CRYPTO_TERMS)
+
+def is_financial_related(text: str, tags: list[str]) -> bool:
+    # If any of your existing buckets hit, it's financial by design
+    bucket_hit = any(tag in tags for tag in [
+        "Fed", "Geopolitics", "Energy", "Trade", "Fiscal", "Crypto/Reg", "Big Tech"
+    ])
+    if bucket_hit:
+        return True
+    # Otherwise scan for explicit finance/geopolitics terms
+    t = text.lower()
+    return any(re.search(p, t, flags=re.I) for p in FINANCE_TERMS)
+
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 bot = Bot(token=TELEGRAM_TOKEN)
@@ -90,8 +134,17 @@ def fin_sentiment(text):
 def classify_post(text):
     impact, tags, forced = market_impact_score(text)
     sent, conf = fin_sentiment(text)
-    return {"impact_score": round(impact, 2), "sentiment": sent, "sent_conf": conf, "tags": tags, "must": forced}
-
+    crypto = is_crypto_related(text, tags)
+    finance = is_financial_related(text, tags) or crypto
+    return {
+        "impact_score": round(impact, 2),
+        "sentiment": sent,
+        "sent_conf": conf,
+        "tags": tags,
+        "must": forced,
+        "is_crypto": crypto,
+        "is_finance": finance
+    }
 def send_alert(post_url, text, meta):
     impact = meta["impact_score"]
     sent = meta["sentiment"]
