@@ -4,9 +4,7 @@ services:
     env: python
     plan: starter
     autoDeploy: true
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: python main.py
     envVars:
       - key: TELEGRAM_TOKEN
@@ -14,4 +12,16 @@ services:
       - key: TELEGRAM_CHAT_ID
         sync: false
       - key: IMPACT_THRESHOLD
-        value: "0.60"
+        value: "0.70"
+      - key: FINANCE_ONLY
+        value: "1"
+      - key: CRYPTO_ONLY
+        value: "0"
+      - key: REQUIRE_NON_NEUTRAL
+        value: "1"
+      - key: MIN_SENT_CONF
+        value: "0.65"
+      - key: NEUTRAL_OVERRIDE_IMPACT
+        value: "0.90"
+      - key: DEDUP_WINDOW_MIN
+        value: "60"
