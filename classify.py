@@ -1,4 +1,7 @@
-import os, re, asyncio
+import os
+import re
+import asyncio   # 👈 This is required for asyncio.run()
+
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from telegram import Bot
 
