@@ -79,4 +79,5 @@ def send_alert(post_url, text, meta):
     msg = (f"🍊 iTrump | {impact_emoji} Market Impact: {impact_level} ({impact}) | "
            f"Sentiment: {sent_emoji} {sent} ({conf})\n"
            f"📎 Tags: {tags}\n\n{text.strip()}\n\nLink: {post_url}")
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+    import asyncio
+asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
